@@ -29,6 +29,27 @@ Write or modify the test first. Watch it fail. Write code to pass.
 
 Thinking "skip TDD just this once"? Stop. That's rationalization.
 
+## IO Code: Test Level and Mock Depth
+
+For IO code, write the failing test at the cheapest level that observes the behavior. Often that is a test against real resources.
+
+**Split logic from IO:**
+
+- **Functional core** - decisions (what to write, retry policy, parsing, validation). Test without IO.
+- **Imperative shell** - effects (network, disk). Keep thin. Cover with tests using real resources: temp dirs, local DBs or servers.
+
+**The bright line for mocks:**
+
+```
+Mocks live ONLY at seams you own (your FileStore, your ApiClient).
+```
+
+Need to change which syscalls an operation performs? Implement it behind the existing seam. Don't wrap the syscalls.
+
+Dependency injection is for genuinely swappable implementations. An interface whose only implementation wraps `fs` and whose only consumer is a test is wrong. Delete it.
+
+**Refactoring:** behavior-preserving implementation swaps ride existing green tests. No new failing test required.
+
 ## The Iron Law
 
 ```
@@ -275,7 +296,7 @@ Tests-first force edge case discovery before implementing. Tests-after verify yo
 | "Deleting X hours is wasteful"         | Sunk cost fallacy. Keeping unverified code is technical debt.           |
 | "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete.             |
 | "Need to explore first"                | Fine. Throw away exploration, start with TDD.                           |
-| "Test hard = design unclear"           | Listen to test. Hard to test = hard to use.                             |
+| "Test hard = design unclear"           | True for logic. Test IO shells against real resource, not redesigns.                             |
 | "TDD will slow me down"                | TDD faster than debugging. Pragmatic = test-first.                      |
 | "Manual test faster"                   | Manual doesn't prove edge cases. You'll re-test every change.           |
 | "Existing code has no tests"           | You're improving it. Add tests for existing code.                       |
@@ -376,6 +397,7 @@ When adding mocks or test utilities, read [testing-anti-patterns.md](testing-ant
 - Testing mock behavior instead of real behavior
 - Adding test-only methods to production classes
 - Mocking without understanding dependencies
+- Mocking below your own abstraction
 
 ## Final Rule
 

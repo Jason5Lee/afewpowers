@@ -16,6 +16,7 @@ Tests must verify real behavior, not mock behavior. Mocks are a means to isolate
 1. NEVER test mock behavior
 2. NEVER add test-only methods to production classes
 3. NEVER mock without understanding dependencies
+4. NEVER mock deeper than your own adapter 
 ```
 
 ## Anti-Pattern 1: Testing Mock Behavior
@@ -159,9 +160,10 @@ BEFORE mocking any method:
   3. Ask: "Do I fully understand what this test needs?"
 
   IF depends on side effects:
-    Mock at lower level (the actual slow/external operation)
+    Mock at the nearest seam you own that hides the slow/external dependency
     OR use test doubles that preserve necessary behavior
     NOT the high-level method the test depends on
+    NEVER deeper than your own adapter (see Anti-Pattern 6)
 
   IF unsure what test depends on:
     Run test with real implementation FIRST
@@ -248,6 +250,72 @@ TDD cycle:
 4. THEN claim complete
 ```
 
+## Anti-Pattern 6: Mocking Below Your Own Abstraction
+
+**The violation:**
+```typescript
+// ❌ BAD: Interface exists so tests can mock the syscall
+interface FileWriter {
+  write(path: string, data: string): Promise<void>;
+}
+
+class RealFileWriter implements FileWriter {
+  async write(path: string, data: string) {
+    await fs.promises.writeFile(path, data); // the only real implementation
+  }
+}
+
+// Tests mock FileWriter - they verify mock wiring, not behavior
+```
+
+**Why this is wrong:**
+- The interface's only implementation wraps one syscall; its only consumer is a test
+- Tests pass even if the real write is broken - false confidence
+- Production carries polymorphism nobody asked for
+- Changing how the IO is performed now means touching the interface, every implementation, and every mock
+
+**The fix:**
+```typescript
+// ✅ GOOD: One seam at the top - your port. Mock it, or use the real thing.
+interface FileStore {
+  save(name: string, data: string): Promise<void>;
+}
+
+class LocalFileStore implements FileStore {
+  async save(name: string, data: string) {
+    /* real fs calls */
+  }
+}
+
+// Logic test: mock FileStore (a seam you own)
+// IO Test: real LocalFileStore against a temp dir
+```
+
+Changing which syscalls an operation performs = a new implementation behind the same seam. Behavior-preserving swaps need no new failing test - existing tests define the behavior.
+
+### Gate Function
+
+```
+BEFORE mocking a system call, stdlib, or platform API:
+  Ask: "Do I own an adapter over this?"
+
+  IF yes:
+    Mock the adapter - or better, use a real resource
+    (temp dir, in-memory DB, local server)
+
+  IF no:
+    Use a real resource
+    OR write the adapter first
+
+  NEVER:
+    Inject syscall-level wrappers to make a test pass
+    Add an interface whose only implementation is the platform API
+
+  Anti-Pattern 4 tie-in:
+    If "mirror the real API completely" requires replicating
+    fs or syscall semantics, you are below your seam. Stop.
+```
+
 ## When Mocks Become Too Complex
 
 **Warning signs:**
@@ -280,6 +348,7 @@ TDD cycle:
 | Incomplete mocks | Mirror real API completely |
 | Tests as afterthought | TDD - tests first |
 | Over-complex mocks | Consider integration tests |
+| Mocking below your own abstraction | Mock your adapter or use a real resource |
 
 ## Red Flags
 
@@ -289,6 +358,7 @@ TDD cycle:
 - Test fails when you remove mock
 - Can't explain why mock is needed
 - Mocking "just to be safe"
+- Interface whose only implementation wraps one syscall
 
 ## The Bottom Line
 
