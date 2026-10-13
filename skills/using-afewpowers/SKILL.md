@@ -16,7 +16,7 @@ Invoke `brainstorming` before changing production code.
 - Record acceptance criteria that tests and review can verify.
 - Obtain the user's approval before implementation.
 
-After the design is approved, return to this workflow and proceed directly to TDD. References in inherited skill text to planning, worktree, or execution skills do not apply to this simplified set.
+After the design is approved, return to this workflow and proceed directly to TDD.
 
 ## 2. Implement with TDD
 

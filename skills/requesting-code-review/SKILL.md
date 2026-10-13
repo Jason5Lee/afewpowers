@@ -12,7 +12,6 @@ Dispatch a code reviewer subagent to catch issues before they cascade. The revie
 ## When to Request Review
 
 **Mandatory:**
-- After each task in subagent-driven development
 - After completing major feature
 - Before merge to main
 
@@ -48,16 +47,16 @@ Dispatch a `general-purpose` subagent, filling the template at [code-reviewer.md
 ## Example
 
 ```
-[Just completed Task 2: Add verification function]
+[Just completed the verification feature]
 
 You: Let me request code review before proceeding.
 
-BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
+BASE_SHA=$(git merge-base origin/main HEAD)
 HEAD_SHA=$(git rev-parse HEAD)
 
 [Dispatch code reviewer subagent]
   DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md
+  PLAN_OR_REQUIREMENTS: Verification feature from docs/superpowers/specs/2025-01-15-deployment-design.md
   BASE_SHA: a7981ec
   HEAD_SHA: 3df7661
 
@@ -69,19 +68,15 @@ HEAD_SHA=$(git rev-parse HEAD)
   Assessment: Ready to proceed
 
 You: [Fix progress indicators]
-[Continue to Task 3]
+[Continue with remaining work]
 ```
 
 ## Integration with Workflows
 
-**Subagent-Driven Development:**
-- Review after EACH task
+**After TDD implementation:**
+- Review when the feature is complete and tests pass
 - Catch issues before they compound
-- Fix before moving to next task
-
-**Executing Plans:**
-- Review after each task or at natural checkpoints
-- Get feedback, apply, continue
+- Fix verified findings through TDD, then rerun the tests
 
 **Ad-Hoc Development:**
 - Review before merge
